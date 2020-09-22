@@ -1,4 +1,4 @@
-# compose-docker
+# compose-docker 😃👌
   
   - Compose docker example
   - Aplicação que acessa a API pública (https://documenter.getpostman.com/view/10808728/SzS8rjbc) e realiza integrações com Rabbit MQ e banco Postgres SQL.  
