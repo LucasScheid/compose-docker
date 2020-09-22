@@ -15,9 +15,9 @@
 
 ## Para iniciar a aplicação via docker-compose
   
-  - 1) No terminal, ir até o local do arquivo docker-compose.yml;
-  - 2) Para subir os containers: docker-compose up -d 
-  - 3) Parar containers, remover volumes e imagens : docker-compose down -v --rmi all
+  - No terminal, ir até o local do arquivo docker-compose.yml;
+  - Para subir os containers: docker-compose up -d 
+  - Parar containers, remover volumes e imagens : docker-compose down -v --rmi all
 
 
 ## Web API para enviar ao RABBIT MQ   
@@ -34,9 +34,16 @@
 ## POSTGRESS Admin
    
    - Acessar : http://localhost:80
+   - User : covid_admin@teste.com.br
+   - Password : sHk7qJsqAkilT9TSqvCR
+      
+   - Para criar o server no pgadmin e realizar consultas SQL, utilize:
+   - host : postgres-db
+   - user : app02
+   - pass : MySecretPassword
+	 
    
 ## Devs 
    
-   - Lucas Scheid (https://github.com/LucasScheid)  
-   
+   - Lucas Scheid https://github.com/LucasScheid  
    
