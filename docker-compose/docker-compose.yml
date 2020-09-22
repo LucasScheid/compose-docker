@@ -1,0 +1,105 @@
+version: '3.5'
+
+networks:
+  wp:
+    driver: bridge
+
+services:
+  worker-ler-rabbit:
+    build:
+       context: .
+       dockerfile: api-read.service/Dockerfile
+    container_name: worker-ler-rabbit          
+    restart: unless-stopped    
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      RABBIT_MQ_HOST: rabbit-mq-server
+      RABBIT_MQ_ENTRY_QUEUE: country-queue
+      RABBIT_MQ_RESULT_QUEUE: country-result-queue
+      DELAY_TIME: 7000
+      BASE_URL: https://api.covid19api.com
+      SERVICE_URL: /total/dayone/country/
+    networks: 
+      - wp   
+    depends_on:
+      - rabbit-mq-server
+
+  worker-envia-postgres:
+    build:
+       context: .
+       dockerfile: database-send.service/Dockerfile
+    container_name: worker-envia-postgres          
+    restart: unless-stopped   
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      RABBIT_MQ_HOST: rabbit-mq-server
+      RABBIT_MQ_RESULT_QUEUE: country-result-queue
+      DELAY_TIME: 7000
+      POSTGRES_STRING_CONNECTION: "Server=postgres-db;User Id=app02;Database=covid_db;Port=5432;Password=MySecretPassword;SSLMode=Prefer"      
+    networks: 
+      - wp   
+    depends_on:
+      - postgres-db
+      - rabbit-mq-server
+
+  api-envia-rabbit:
+    build:
+       context: .
+       dockerfile: send.message.rabbit-api/Dockerfile
+    container_name: api-envia-rabbit          
+    restart: unless-stopped
+    ports:
+      - "5000:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      RABBIT_MQ_HOST: rabbit-mq-server
+      RABBIT_MQ_ENTRY_QUEUE: country-queue      
+    networks: 
+      - wp   
+    depends_on:
+      - rabbit-mq-server
+
+  rabbit-mq-server:    
+    image: rabbitmq:3-management  
+    container_name: rabbit-mq-server
+    restart: on-failure
+    ports:
+      - 8080:15672
+      - 5672:5672
+      - 25676:25676    
+    networks: 
+      - wp
+  
+  postgres-db:
+    image: postgres:9.6
+    container_name: postgres-db
+    restart: on-failure
+    environment:
+      POSTGRES_DB: covid_db   
+      POSTGRES_USER: app02
+      POSTGRES_PASSWORD: MySecretPassword
+    networks: 
+      - wp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/:/docker-entrypoint-initdb.d
+  
+  postgres-db-ui:    
+    image: dpage/pgadmin4:4.18
+    container_name: postgres-db-ui
+    restart: on-failure
+    environment:
+      PGADMIN_DEFAULT_EMAIL: covid_admin@teste.com.br   
+      PGADMIN_DEFAULT_PASSWORD: sHk7qJsqAkilT9TSqvCR 
+    volumes:    
+      - pg_admin_data:/var/lib/pgadmin       
+    networks: 
+      - wp
+    ports:
+      - 80:80
+
+volumes:
+    postgres_data:
+        driver: local
+    pg_admin_data:
+        driver: local

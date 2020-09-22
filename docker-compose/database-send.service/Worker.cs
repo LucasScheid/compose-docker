@@ -31,30 +31,28 @@ namespace database_send.service
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                string message = string.Empty;
+                _logger.LogInformation("Aguardando mensagens... ", DateTimeOffset.Now);
 
-
-                var receiveMessage = _receive.ReceiveMessage(rabbitHost, queueResultName);
-
-                //Root apiResult = new Root();
-
-                List<ApiResult> json = JsonConvert.DeserializeObject<List<ApiResult>>(receiveMessage);
-
-                if (json.Count > 0)
+                try
                 {
+                    message = _receive.ReceiveMessage(rabbitHost, queueResultName);
 
-                    try
+                    if (!string.IsNullOrEmpty(message))
                     {
-                        using (var conn = new NpgsqlConnection(conString))
+                        List<ApiResult> json = JsonConvert.DeserializeObject<List<ApiResult>>(message);
 
+                        if (json.Count > 0)
                         {
-                            Console.Out.WriteLine("Opening connection");
-                            conn.Open();
-
-                            foreach (var item in json)
+                            try
                             {
-                                using (var command = new NpgsqlCommand("INSERT INTO covid_result.countrys (Country,CountryCode,Province,City,CityCode,Lat,Lon,Confirmed,Deaths,Recovered,Active,Date) VALUES (@Country,@CountryCode,@Province,@City,@CityCode,@Lat,@Lon,@Confirmed,@Deaths,@Recovered,@Active,@Date)", conn))
+                                using var conn = new NpgsqlConnection(conString);
+                                Console.Out.WriteLine("Opening connection");
+                                conn.Open();
+
+                                foreach (var item in json)
                                 {
+                                    using var command = new NpgsqlCommand("INSERT INTO covid_result.countrys (Country,CountryCode,Province,City,CityCode,Lat,Lon,Confirmed,Deaths,Recovered,Active,Date) VALUES (@Country,@CountryCode,@Province,@City,@CityCode,@Lat,@Lon,@Confirmed,@Deaths,@Recovered,@Active,@Date)", conn);
                                     command.Parameters.AddWithValue("Country", item.Country);
                                     command.Parameters.AddWithValue("CountryCode", item.CountryCode);
                                     command.Parameters.AddWithValue("Province", item.Province);
@@ -68,86 +66,25 @@ namespace database_send.service
                                     command.Parameters.AddWithValue("Active", item.Active);
                                     command.Parameters.AddWithValue("Date", item.Date);
 
+                                    int aff = command.ExecuteNonQuery();
+                                    Console.WriteLine($"{aff} rows were affected.");
 
-                                    int nRows = command.ExecuteNonQuery();
-                                    //Console.Out.WriteLine(String.Format("Number of rows inserted={0}", nRows));
                                 }
                             }
+                            catch (Exception ex)
+                            {
 
+                                Console.WriteLine($"Exception(Bd) ==> { ex.Message}");
+                            }
 
-                            //using (var command = new NpgsqlCommand("DROP TABLE IF EXISTS inventory", conn))
-                            //{
-                            //    command.ExecuteNonQuery();
-                            //    Console.Out.WriteLine("Finished dropping table (if existed)");
-
-                            //}
-
-                            //using (var command = new NpgsqlCommand("CREATE TABLE inventory(id serial PRIMARY KEY, name VARCHAR(50), quantity INTEGER)", conn))
-                            //{
-                            //    command.ExecuteNonQuery();
-                            //    Console.Out.WriteLine("Finished creating table");
-                            //}
-
-                            //using (var command = new NpgsqlCommand("INSERT INTO inventory (name, quantity) VALUES (@n1, @q1), (@n2, @q2), (@n3, @q3)", conn))
-                            //{
-                            //    command.Parameters.AddWithValue("n1", "banana");
-                            //    command.Parameters.AddWithValue("q1", 150);
-                            //    command.Parameters.AddWithValue("n2", "orange");
-                            //    command.Parameters.AddWithValue("q2", 154);
-                            //    command.Parameters.AddWithValue("n3", "apple");
-                            //    command.Parameters.AddWithValue("q3", 100);
-
-                            //    int nRows = command.ExecuteNonQuery();
-                            //    Console.Out.WriteLine(String.Format("Number of rows inserted={0}", nRows));
-                            //}
                         }
                     }
-                    catch (Exception ex)
-                    {
-
-                        Console.WriteLine(ex.Message); ;
-                    }
-
                 }
+                catch (Exception ex)
+                {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                    Console.WriteLine($"Exception(Bd) ==> { ex.Message}");
+                }
 
                 await Task.Delay(delayTime, stoppingToken);
             }

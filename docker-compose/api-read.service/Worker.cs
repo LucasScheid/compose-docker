@@ -37,10 +37,15 @@ namespace api_read.service
 
                 if (!string.IsNullOrEmpty(finalMessage))
                 {
+                    Console.WriteLine("Iniciar consulta....");
+
                     var apiResult = await _covidApiRequest.Execute(baseURL, ServiceURL, finalMessage);
 
                     if (!string.IsNullOrEmpty(apiResult))
+                    {
+                        Console.WriteLine("Consultou....");
                         _send.SendMessage(apiResult, rabbitHost, queueResultName);
+                    }
                 }
 
                 await Task.Delay(delayTime, stoppingToken);
